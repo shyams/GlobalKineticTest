@@ -5,6 +5,7 @@
  */
 package GlobalKinetic;
 
+import com.google.common.collect.HashBiMap;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
@@ -12,11 +13,15 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Properties;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
+import org.apache.catalina.mapper.Mapper;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -78,16 +83,25 @@ public class UserData extends HttpServlet {
             String userPhone = null;
             String token = null;
             String loginStatus = null;
-            JSONObject jsonData = null;
+            org.json.JSONObject jsonData = null;
             if (jsonStr != null) {
-                jsonData = (JSONObject) JSONValue.parse(jsonStr);
-                if (jsonData.get("username") != null && jsonData.get("password") != null) {
-                    user = jsonData.get("username").toString();
-                    pass = jsonData.get("password").toString();
-                } else {
-                    token = jsonData.get("token").toString();
-                }
+                System.out.println("ijrjdgjre"+jsonStr);
+                jsonData = new org.json.JSONObject(jsonStr);              
 
+                     if (jsonData.has("username")) {
+                        user = jsonData.get("username").toString();
+                    }
+                    if (jsonData.has("password")) {
+                        pass = jsonData.get("password").toString();
+                    }
+                    if (jsonData.has("token")) {
+                        token = jsonData.get("token").toString();
+                    }
+                    if (jsonData.has("id")) {
+                        user = jsonData.get("id").toString();
+                    }
+               
+  
             }
 
             // 1.0 Get a connection
@@ -117,56 +131,61 @@ public class UserData extends HttpServlet {
                 myRS = myStatement.executeQuery("SELECT * FROM users");
             }
             System.out.println("mrs closed " + myRS.isClosed());
-            if (!myRS.isClosed()) {
-                // 4. Process the result set
-                while (myRS.next()) {
-                    String id = myRS.getString("id");
-                    String uName = myRS.getString("username");
-                    String password = myRS.getString("password");
-                    String phone = myRS.getString("phone");
-                    String status = myRS.getString("status");
-                    String key = myRS.getString("key");
-                    String time = myRS.getString("logintime");
+//            if (!myRS.isClosed()) {
+            // 4. Process the result set
+            while (myRS.next()) {
+                String id = myRS.getString("id");
+                String uName = myRS.getString("username");
+                String password = myRS.getString("password");
+                String phone = myRS.getString("phone");
+                String status = myRS.getString("status");
+                String key = myRS.getString("key");
+                String time = myRS.getString("logintime");
 
-                    if (sessionId != null && uName != null
-                            && uName.equalsIgnoreCase(user)
-                            && password != null
-                            && password.equalsIgnoreCase(pass)) {
-                        userName = uName;
-                        rowId = id;
-                        if (userName != null) {
-                            String currentTime = String.valueOf(System.currentTimeMillis());
-                            jo.put("id", userName);
-                            jo.put("time", currentTime);
-                            if (sessionId != null) {
-                                jo.put("token", sessionId);
-                                myStatement.executeUpdate("UPDATE users SET status ='y', key='" + sessionId + "', logintime='" + currentTime + "' WHERE id =" + rowId);
-                            }
+                if (sessionId != null && uName != null
+                        && uName.equalsIgnoreCase(user)
+                        && password != null
+                        && password.equalsIgnoreCase(pass)) {
+                    System.out.println("hello 1");
+                    userName = uName;
+                    rowId = id;
+                    if (userName != null) {
+                        String currentTime = String.valueOf(System.currentTimeMillis());
+                        jo.put("id", userName);
+                        jo.put("time", currentTime);
+                        if (sessionId != null) {
+                            System.out.println("key " + key);
+                            jo.put("token", sessionId);
+                            myStatement.executeUpdate("UPDATE users SET status ='y', key='" + sessionId + "', logintime='" + currentTime + "' WHERE id =" + rowId);
                         }
+                    }
 
-                    }
-                    //checks post request to logout the user
-                    if (sessionId == null && token != null) {
-                        if (token.equalsIgnoreCase(key)) {
-                            myStatement.executeUpdate("UPDATE users SET status ='n', key='" + null + "', logintime='" + null + "' WHERE id =" + id);
-                        }
-                    }
-                    //checks put request if user exists or not
-                    if (sessionId == null && token == null && uName != null && uName.equalsIgnoreCase(user)) {
-                        userName = uName;
-                        if (userName != null) {
-                            jo.put("error", "Username Already Exists");
-                        }
-                    }
-                    if (sessionId == null && jsonStr == null && status.equalsIgnoreCase("y")) {
-                        JSONObject dataObject = new JSONObject();
-                        dataObject.put("id", uName);
-                        dataObject.put("phone", phone);
-                        dataObject.put("time", time);
-                        ja.add(dataObject);
+                }
+                //checks post request to logout the user
+                if (token != null) {
+                    System.out.println("hello 2");
+                    if (token.equalsIgnoreCase(key)) {
+                        myStatement.executeUpdate("UPDATE users SET status ='n', key='" + null + "', logintime='" + null + "' WHERE id =" + id);
+                    } else if (user.equalsIgnoreCase(uName)) {
+                        myStatement.executeUpdate("UPDATE users SET status ='n', key='" + null + "', logintime='" + null + "' WHERE id =" + id);
                     }
                 }
+                //checks put request if user exists or not
+                if (sessionId == null && token == null && uName != null && uName.equalsIgnoreCase(user)) {
+                    userName = uName;
+                    if (userName != null) {
+                        jo.put("error", "Username Already Exists");
+                    }
+                }
+                if (sessionId == null && jsonStr == null && status.equalsIgnoreCase("y")) {
+                    JSONObject dataObject = new JSONObject();
+                    dataObject.put("id", uName);
+                    dataObject.put("phone", phone);
+                    dataObject.put("time", time);
+                    ja.add(dataObject);
+                }
             }
+//            }
             if (userName == null && user != null && pass != null && userPhone != null) {
                 myStatement.executeUpdate("INSERT INTO users (username, password, phone,status,key,logintime) "
                         + "VALUES('" + user + "', '" + pass + "', '" + userPhone + "', '" + "n" + "', '" + null + "', '" + null + "')");

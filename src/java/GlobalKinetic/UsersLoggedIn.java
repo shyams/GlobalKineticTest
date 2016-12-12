@@ -98,11 +98,11 @@ public class UsersLoggedIn {
             if (loginDetails.length() > 0) {
                 UserData ud = new UserData();
                 JSONObject jsonVal = (JSONObject) JSONValue.parse(loginDetails);
-                if (jsonVal.get("token") != null) {
-                    userData = ud.processRequest(loginDetails, null, "POST");
-                } else {
+//                if (jsonVal.containsKey("token")) {
+//                    userData = ud.processRequest(loginDetails, null, "POST");
+//                } else {
                     userData = ud.processRequest(loginDetails, ssnId, "POST");
-                }
+//                }
 
             }
         } catch (Exception e) {
