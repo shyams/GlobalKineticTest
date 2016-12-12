@@ -45,7 +45,7 @@ public class UserData extends HttpServlet {
             props.load(output);
 
             // load the Driver Class
-            Class.forName("org.postgresql.Driver");
+            Class.forName(props.getProperty("DB_DRIVER"));
 
             // create the connection now
             con = DriverManager.getConnection(props.getProperty("DB_URL"),
@@ -85,7 +85,7 @@ public class UserData extends HttpServlet {
             String loginStatus = null;
             org.json.JSONObject jsonData = null;
             if (jsonStr != null) {
-                System.out.println("ijrjdgjre"+jsonStr);
+
                 jsonData = new org.json.JSONObject(jsonStr);              
 
                      if (jsonData.has("username")) {
